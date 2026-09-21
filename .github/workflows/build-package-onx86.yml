@@ -104,32 +104,6 @@ jobs:
       - name: Update and Install feeds
         run: |
           cd openwrt
-
-          # ✅ 0. 清除可能的 Windows 换行符和分号
-          sed -i 's/\r//g' feeds.conf.default
-          sed -i 's/;/ /g' feeds.conf.default
-
-          # ✅ 1. 用通配替换 + 空格分隔分支（兼容性最好）
-          sed -i 's|src-git packages .*|src-git packages https://github.com/istoreos/packages.git istoreos-25.12|g' feeds.conf.default
-          sed -i 's|src-git luci .*|src-git luci https://github.com/istoreos/luci.git istoreos-25.12|g' feeds.conf.default
-          sed -i 's|src-git routing .*|src-git routing https://github.com/istoreos/routing.git istoreos-25.12|g' feeds.conf.default
-          sed -i 's|src-git telephony .*|src-git telephony https://github.com/istoreos/telephony.git istoreos-25.12|g' feeds.conf.default
-          sed -i 's|src-git video .*|src-git video https://github.com/openwrt/video.git openwrt-25.12|g' feeds.conf.default
-
-          # ✅ 2. 删除可能已存在的 store/third 源及注释
-          sed -i '/src-git store/d' feeds.conf.default
-          sed -i '/src-git third/d' feeds.conf.default
-          sed -i '/# istore/d' feeds.conf.default
-          sed -i '/# argon/d' feeds.conf.default
-
-          # ✅ 3. 追加 iStore 和 third-party 源（空格分隔）
-          echo "src-git store https://github.com/linkease/istore.git main" >> feeds.conf.default
-          echo "src-git third https://github.com/jjm2473/openwrt-third.git main" >> feeds.conf.default
-
-          # 打印确认
-          echo "=== 修改后的 feeds 配置 ==="
-          cat feeds.conf.default
-
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
