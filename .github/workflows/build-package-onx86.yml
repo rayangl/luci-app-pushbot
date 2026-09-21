@@ -56,8 +56,6 @@ jobs:
           - op_branch: istoreos-25.12
             pkg_type: APK
             op_repo: https://github.com/istoreos/istoreos
-          - op_branch: openwrt-23.05
-            pkg_type: IPK
 
     steps:
       - name: Maximize build space
