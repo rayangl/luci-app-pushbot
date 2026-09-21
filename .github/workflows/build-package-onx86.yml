@@ -8,7 +8,7 @@
 # Description: Build OpenWrt using GitHub Actions
 #
 
-name: OpenWrt-Plugins-Build-x86
+name: OpenWrt-Plugins-Build-istoreos
 
 on:
   repository_dispatch:
@@ -51,13 +51,9 @@ jobs:
       matrix:
         plugin:
           - name: luci-app-pushbot
-            repo: https://github.com/zzsj0928/luci-app-pushbot.git
-            op_repo: https://github.com/openwrt/openwrt
+            repo: https://github.com/rayangl/luci-app-pushbot.git
+            op_repo: https://github.com/istoreos/istoreos
             op_branch: main
-          - name: luci-app-pushbot
-            repo: https://github.com/zzsj0928/luci-app-pushbot.git
-            op_repo: https://github.com/openwrt/openwrt
-            op_branch: openwrt-23.05
 
     steps:
       - name: Before freeing up disk space
@@ -104,9 +100,9 @@ jobs:
           # 缓存整个 openwrt/（源码 + dl 下载 + staging_dir 工具链 +
           # build_dir 编译缓存），命中后跳过 clone，直接增量编译
           path: openwrt
-          key: pushbot-openwrt-${{ matrix.plugin.op_branch }}-${{ runner.os }}
+          key: pushbot-istoreos-${{ matrix.plugin.op_branch }}-${{ runner.os }}
           restore-keys: |
-            pushbot-openwrt-${{ matrix.plugin.op_branch }}-
+            pushbot-istoreos-${{ matrix.plugin.op_branch }}-
 
       - name: Clone source code
         if: steps.cache.outputs.cache-hit != 'true'
