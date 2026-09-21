@@ -197,16 +197,15 @@ jobs:
           echo "=== 版本: ${TAG} ==="
 
       - name: Set workflow run name
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const tag = process.env.TAG || 'unknown';
-            github.rest.actions.updateWorkflowRun({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: context.runId,
-              name: tag
-            });
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            -f name="${TAG}"
 
       - name: Generate changelog
         id: changelog
