@@ -96,14 +96,14 @@ jobs:
       - name: Update and Install feeds
         run: |
           cd openwrt
-          # ✅ 补充：替换为 iStoreOS feeds 源
-          echo "=== 替换为 iStoreOS feeds ==="
-          cat > feeds.conf.default << 'EOF'
-          src-git packages https://github.com/istoreos/packages.git;istoreos-25.12
-          src-git luci https://github.com/istoreos/luci.git;istoreos-25.12
-          src-git routing https://github.com/istoreos/routing.git;istoreos-25.12
-          src-git telephony https://github.com/istoreos/telephony.git;istoreos-25.12
-          EOF
+          # ✅ 精准替换指定的 feeds 源为 iStoreOS 的源
+          sed -i 's|src-git packages https://github.com/openwrt/packages.git|src-git packages https://github.com/istoreos/packages.git;istoreos-25.12|g' feeds.conf.default
+          sed -i 's|src-git luci https://github.com/openwrt/luci.git|src-git luci https://github.com/istoreos/luci.git;istoreos-25.12|g' feeds.conf.default
+          sed -i 's|src-git routing https://github.com/openwrt/routing.git|src-git routing https://github.com/istoreos/routing.git;istoreos-25.12|g' feeds.conf.default
+          sed -i 's|src-git telephony https://github.com/openwrt/telephony.git|src-git telephony https://github.com/istoreos/telephony.git;istoreos-25.12|g' feeds.conf.default
+          
+          # 打印修改后的配置确认
+          echo "=== 修改后的 feeds 配置 ==="
           cat feeds.conf.default
           
           ./scripts/feeds update -a
@@ -118,6 +118,11 @@ jobs:
           echo CONFIG_TARGET_x86=y >> .config
           echo CONFIG_TARGET_x86_64=y >> .config
           echo CONFIG_TARGET_x86_64_DEVICE_generic=y >> .config
+          echo CONFIG_PACKAGE_${{ env.PLUGIN_NAME }}=y >> .config
+          echo CONFIG_PACKAGE_luci-i18n-pushbot-zh-cn=y >> .config
+          echo CONFIG_LUCI_LANG_zh_Hans=y >> .config
+          # 强制启用 APK 包管理器
+          echo CONFIG_USE_APK=y >> .config
           echo CONFIG_PACKAGE_${{ env.PLUGIN_NAME }}=y >> .config
           echo CONFIG_PACKAGE_luci-i18n-pushbot-zh-cn=y >> .config
           echo CONFIG_LUCI_LANG_zh_Hans=y >> .config
@@ -234,6 +239,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # 从 Makefile 提取版本号
+          VER=$(grep '^PKG_VERSION' Makefile | head -1 | cut -d= -f2)
+          REL=$(grep '^PKG_RELEASE' Makefile | head -1 | cut -d= -f2)
+
+          # 获取当前日期时间，格式：2026.09.21-2244
+          DATE=$(date +%Y.%m.%d-%H%M)
+
+          # ✅ 核心：按你想要的格式拼凑 Release 标题
+          TAG="luci-app-pushbot_${DATE}_all_APK"
+
+          echo "Release 标题: ${TAG}"
+
           # 检查 tag 是否已存在
           if git rev-parse "refs/tags/${TAG}" >/dev/null 2>&1; then
             echo "tag ${TAG} 已存在，跳过创建（更新产物到已有 Release）"
@@ -243,7 +260,7 @@ jobs:
             git push origin "${TAG}"
           fi
 
-          # 创建/更新 Release（idempotent：已存在则更新）
+          # 创建/更新 Release
           gh release delete "${TAG}" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
           gh release create "${TAG}" \
             --repo "${{ github.repository }}" \
