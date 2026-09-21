@@ -96,6 +96,16 @@ jobs:
       - name: Update and Install feeds
         run: |
           cd openwrt
+          # ✅ 补充：替换为 iStoreOS feeds 源
+          echo "=== 替换为 iStoreOS feeds ==="
+          cat > feeds.conf.default << 'EOF'
+          src-git packages https://github.com/istoreos/packages.git;istoreos-25.12
+          src-git luci https://github.com/istoreos/luci.git;istoreos-25.12
+          src-git routing https://github.com/istoreos/routing.git;istoreos-25.12
+          src-git telephony https://github.com/istoreos/telephony.git;istoreos-25.12
+          EOF
+          cat feeds.conf.default
+          
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
