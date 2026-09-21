@@ -93,7 +93,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: git clone ${{ matrix.op_repo }} -b ${{ matrix.op_branch }} openwrt
 
-            - name: Update and Install feeds
+      - name: Update and Install feeds
         run: |
           cd openwrt
 
