@@ -92,7 +92,15 @@ jobs:
       - name: Clone source code
         if: steps.cache.outputs.cache-hit != 'true'
         run: git clone ${{ matrix.op_repo }} -b ${{ matrix.op_branch }} openwrt
-
+        
+      - name: Debug feed branches
+        run: |
+          echo "=== Checking istoreos/packages branches ==="
+          git ls-remote --heads https://github.com/istoreos/packages.git | grep -i "25\|istoreos" || echo "No matching branches found!"
+          
+          echo "=== Checking istoreos/luci branches ==="
+          git ls-remote --heads https://github.com/istoreos/luci.git | grep -i "25\|istoreos" || echo "No matching branches found!"
+          
       - name: Update and Install feeds
         run: |
           cd openwrt
