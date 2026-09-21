@@ -103,7 +103,11 @@ jobs:
           sed -i 's|src-git routing https://github.com/openwrt/routing.git|src-git routing https://github.com/istoreos/routing.git,istoreos-25.12|g' feeds.conf.default
           sed -i 's|src-git telephony https://github.com/openwrt/telephony.git|src-git telephony https://github.com/istoreos/telephony.git,istoreos-25.12|g' feeds.conf.default
           
-          # ✅ 2. 追加 iStore 和 third-party 源 (因为原文件没有，只能追加)
+          # ✅ 2. 删除文件里可能已存在的 store 和 third 源（防止重复）
+          sed -i '/src-git store/d' feeds.conf.default
+          sed -i '/src-git third/d' feeds.conf.default
+          
+          # ✅ 3. 追加 iStore 和 third-party 源
           echo "src-git store https://github.com/linkease/istore.git,main" >> feeds.conf.default
           echo "src-git third https://github.com/jjm2473/openwrt-third.git,main" >> feeds.conf.default
           
