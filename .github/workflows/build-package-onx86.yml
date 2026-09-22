@@ -127,7 +127,7 @@ jobs:
           limit-access-to-actor: true
           wait-timeout-minutes: 5
 
-      -      - name: Compile
+      - name: Compile
         run: |
           cd openwrt
           make defconfig
