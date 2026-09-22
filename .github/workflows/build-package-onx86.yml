@@ -127,19 +127,25 @@ jobs:
           limit-access-to-actor: true
           wait-timeout-minutes: 5
 
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison g++ gawk \
+            gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
+            python3-distutils python3-setuptools rsync swig unzip zlib1g-dev \
+            file wget qemu-utils
+
       - name: Compile
         run: |
           cd openwrt
           make defconfig
 
-          # 只下载目标插件及其依赖的源码
+          # 只下载主包即可，i18n 会在 compile 阶段自动生成/处理
           make package/luci-app-pushbot/download -j8 || true
-          make package/luci-i18n-pushbot-zh-cn/download -j8 || true
 
-          # 两个包一起 clean+compile，避免缓存残留旧产物
-          make package/luci-app-pushbot/{clean,compile} package/luci-i18n-pushbot-zh-cn/{clean,compile} -j$(nproc) \
-
-            || make package/luci-app-pushbot/compile package/luci-i18n-pushbot-zh-cn/compile -j1 V=s
+          # 清理并编译（如果并行失败，回退到单线程详细输出）
+          make package/luci-app-pushbot/{clean,compile} -j$(nproc) || 
+            make package/luci-app-pushbot/compile -j1 V=s
           
       - name: Prune before cache
         run: rm -rf openwrt/tmp openwrt/bin
