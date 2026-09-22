@@ -43,6 +43,8 @@ env:
   TZ: Asia/Shanghai
   PLUGIN_NAME: luci-app-pushbot
   REPO_URL: https://github.com/rayangl/luci-app-pushbot.git
+  OPENWRT_REPO: https://github.com/istoreos/istoreos.git
+  OPENWRT_BRANCH: istoreos-25.12
 
 jobs:
   build:
@@ -78,28 +80,18 @@ jobs:
           sudo -E apt -qq install gettext -y
           sudo timedatectl set-timezone "$TZ"
 
-      - name: Cache key suffix
-        id: ck
-        run: echo "suffix=$(date +%Y%V)" >> "$GITHUB_OUTPUT"
-
       - name: Restore OpenWrt cache
         id: cache
-        if: inputs.use_cache
         uses: actions/cache/restore@v4
         with:
           path: openwrt
-          key: pushbot25-${{ matrix.op_branch }}-${{ steps.ck.outputs.suffix }}
+          key: istoreos-${{ matrix.op_branch }}-${{ runner.os }}
           restore-keys: |
-            pushbot25-${{ matrix.op_branch }}-
+            istoreos-${{ matrix.op_branch }}-
 
       - name: Clone source code
         if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          if [ -d openwrt/.git ]; then
-            cd openwrt && git pull --ff-only origin istoreos-25.12
-          else
-            git clone https://github.com/istoreos/istoreos.git -b istoreos-25.12 openwrt
-          fi
+        run: git clone ${{ env.OPENWRT_REPO }} -b ${{ env.OPENWRT_BRANCH }} openwrt
 
       - name: Update and Install feeds
         run: |
@@ -122,46 +114,32 @@ jobs:
 
       - name: SSH connection to Actions
         uses: lhotari/action-upterm@v1
-        if: inputs.ssh == 'true'
+        if: github.event.inputs.ssh == 'true'
         with:
           limit-access-to-actor: true
           wait-timeout-minutes: 5
 
-      - name: Install host dependencies
+      - name: Set npm cache to temp
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential clang flex bison g++ gawk \
-            gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
-            python3-setuptools rsync swig unzip zlib1g-dev \
-            file wget qemu-utils libdeflate-dev cmake
+          mkdir -p /tmp/npm-cache
+          echo "npm_config_cache=/tmp/npm-cache" >> $GITHUB_ENV
 
-      - name: Compile
+      - name: Download and Compile
         run: |
           cd openwrt
           make defconfig
-
-          # 【关键】强制清理并重建宿主机工具链
-          # 这会重新编译 libdeflate-gzip、patchelf 等所有 host 工具
-          make tools/clean
-          make tools/compile -j$(nproc) || make tools/compile -j1 V=s
-
-          # 然后再下载和编译你的插件
-          make package/luci-app-pushbot/download -j8 || true
-          make package/luci-app-pushbot/{clean,compile} -j$(nproc) || \
-            make package/luci-app-pushbot/compile -j1 V=s
-          
-      - name: Prune before cache
-        run: rm -rf openwrt/tmp openwrt/bin
+          make download -j8
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+          echo -e "$(nproc) thread compile"
+          make -j$(nproc) || make -j1 V=s
 
       - name: Save OpenWrt cache
         uses: actions/cache/save@v4
-        if: inputs.use_cache && success() && steps.cache.outputs.cache-hit != 'true'
+        if: success() && steps.cache.outputs.cache-hit != 'true'
         with:
-          path: |
-            openwrt/dl
-            openwrt/staging_dir
-            openwrt/build_dir
-          key: pushbot25-${{ matrix.op_branch }}-${{ steps.ck.outputs.suffix }}
+          path: openwrt
+          key: istoreos-${{ matrix.op_branch }}-${{ runner.os }}
 
       - name: Organize and upload artifacts
         if: success() && !cancelled()
