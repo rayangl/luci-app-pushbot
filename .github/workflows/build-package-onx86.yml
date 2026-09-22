@@ -32,7 +32,6 @@ on:
         default: ubuntu-24.04
         type: choice
         options:
-          - ubuntu-20.04
           - ubuntu-22.04
           - ubuntu-24.04
 
@@ -79,18 +78,28 @@ jobs:
           sudo -E apt -qq install gettext -y
           sudo timedatectl set-timezone "$TZ"
 
+      - name: Cache key suffix
+        id: ck
+        run: echo "suffix=$(date +%Y%V)" >> "$GITHUB_OUTPUT"
+
       - name: Restore OpenWrt cache
         id: cache
+        if: inputs.use_cache
         uses: actions/cache/restore@v4
         with:
           path: openwrt
-          key: pushbot-${{ matrix.op_branch }}-${{ runner.os }}
+          key: pushbot25-${{ matrix.op_branch }}-${{ steps.ck.outputs.suffix }}
           restore-keys: |
-            pushbot-${{ matrix.op_branch }}-
+            pushbot25-${{ matrix.op_branch }}-
 
       - name: Clone source code
         if: steps.cache.outputs.cache-hit != 'true'
-        run: git clone https://github.com/istoreos/istoreos.git -b istoreos-25.12 openwrt
+        run: |
+          if [ -d openwrt/.git ]; then
+            cd openwrt && git pull --ff-only origin istoreos-25.12
+          else
+            git clone https://github.com/istoreos/istoreos.git -b istoreos-25.12 openwrt
+          fi
 
       - name: Update and Install feeds
         run: |
@@ -113,32 +122,37 @@ jobs:
 
       - name: SSH connection to Actions
         uses: lhotari/action-upterm@v1
-        if: github.event.inputs.ssh == 'true'
+        if: inputs.ssh == 'true'
         with:
           limit-access-to-actor: true
           wait-timeout-minutes: 5
 
-      - name: Set npm cache to temp
-        run: |
-          mkdir -p /tmp/npm-cache
-          echo "npm_config_cache=/tmp/npm-cache" >> $GITHUB_ENV
-
-      - name: Download and Compile
+      -      - name: Compile
         run: |
           cd openwrt
           make defconfig
-          make download -j8
-          find dl -size -1024c -exec ls -l {} \;
-          find dl -size -1024c -exec rm -f {} \;
-          echo -e "$(nproc) thread compile"
-          make -j$(nproc) || make -j1 V=s
+
+          # 只下载目标插件及其依赖的源码
+          make package/luci-app-pushbot/download -j8 || true
+          make package/luci-i18n-pushbot-zh-cn/download -j8 || true
+
+          # 两个包一起 clean+compile，避免缓存残留旧产物
+          make package/luci-app-pushbot/{clean,compile} package/luci-i18n-pushbot-zh-cn/{clean,compile} -j$(nproc) \
+
+            || make package/luci-app-pushbot/compile package/luci-i18n-pushbot-zh-cn/compile -j1 V=s
+          
+      - name: Prune before cache
+        run: rm -rf openwrt/tmp openwrt/bin
 
       - name: Save OpenWrt cache
         uses: actions/cache/save@v4
-        if: success() && steps.cache.outputs.cache-hit != 'true'
+        if: inputs.use_cache && success() && steps.cache.outputs.cache-hit != 'true'
         with:
-          path: openwrt
-          key: pushbot-${{ matrix.op_branch }}-${{ runner.os }}
+          path: |
+            openwrt/dl
+            openwrt/staging_dir
+            openwrt/build_dir
+          key: pushbot25-${{ matrix.op_branch }}-${{ steps.ck.outputs.suffix }}
 
       - name: Organize and upload artifacts
         if: success() && !cancelled()
