@@ -755,8 +755,10 @@ return {
 		let f0 = popen("command -v apk 2>/dev/null", "r");
 		if (f0) { let o = f0.read("all"); f0.close(); if (o && length(replace(o, /\s+/, "")) > 0) mgr = "apk"; }
 
-		/* build download URLs */
-		let base = "https://github.com/zzsj0928/luci-app-pushbot/releases/download/luci-app-pushbot-v" + ver + "-r" + rel + "/";
+		/* build download URLs — 从 UCI 读取 OTA 源，fallback 到原作者 */
+        let u = cursor();
+        let ota_owner = u.get("pushbot", "pushbot", "ota_owner") ?? "rayangl";
+        let base = "https://github.com/" + ota_owner + "/luci-app-pushbot/releases/download/luci-app-pushbot-v" + ver + "-r" + rel + "/";
 		let files;
 		if (mgr == "apk") {
 			files = [
