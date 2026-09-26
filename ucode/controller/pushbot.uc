@@ -1,4 +1,4 @@
-// Copyright 2022-2025 tty228 <tty228@yeah.net> zzsj0928
+// Copyright 2022-2025 tty228 <tty228@yeah.net> rayangl
 // Licensed to the public under the Apache License 2.0.
 
 import { popen, open, readfile, access, mkdir, error } from 'fs';
@@ -756,7 +756,7 @@ return {
 		if (f0) { let o = f0.read("all"); f0.close(); if (o && length(replace(o, /\s+/, "")) > 0) mgr = "apk"; }
 
 		/* build download URLs */
-		let base = "https://github.com/zzsj0928/luci-app-pushbot/releases/download/luci-app-pushbot-v" + ver + "-r" + rel + "/";
+		let base = "https://github.com/rayangl/luci-app-pushbot/releases/download/luci-app-pushbot-v" + ver + "-r" + rel + "/";
 		let files;
 		if (mgr == "apk") {
 			files = [
