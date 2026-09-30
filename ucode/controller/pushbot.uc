@@ -866,8 +866,8 @@ return {
 				+ "'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE16+nzzY9Lx5wvzZoWs/18vZxsNZD' "
 				+ "'jv+CqECJLUj+fA7J228Iu13DVUO8CK9jQyLHtqkw0f4/X2bKLlLiz281zQ==' "
 				+ "'-----END PUBLIC KEY-----' > /etc/apk/keys/zed-openwrt-apk.pem; }; ";
-			cmd_pb = "apk add /tmp/pushbot/pkgs/luci-app-pushbot-*.apk";
-			cmd_i18n = "apk add /tmp/pushbot/pkgs/luci-i18n-pushbot-zh-cn-*.apk";
+			cmd_pb = "apk add --allow-untrusted /tmp/pushbot/pkgs/luci-app-pushbot-*.apk";
+			cmd_i18n = "apk add --allow-untrusted /tmp/pushbot/pkgs/luci-i18n-pushbot-zh-cn-*.apk";
 		} else {
 			/* opkg 同版本会 up to date 跳过，需 --force-reinstall 覆盖 */
 			cmd_pb = "opkg install --force-reinstall /tmp/pushbot/pkgs/luci-app-pushbot_*.ipk";
