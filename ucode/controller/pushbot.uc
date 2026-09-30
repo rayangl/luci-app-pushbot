@@ -861,11 +861,6 @@ return {
 			/* 装前检测 Zed 自签公钥：无则写入（添加不覆盖），随后安装
 			   免 --allow-untrusted（覆盖 r31 及更早设备首次走 OTA 的场景，
 			   它们设备上还没有公钥；含公钥的包本身也靠这步建立信任）。 */
-			trust = "[ -f /etc/apk/keys/zed-openwrt-apk.pem ] || { mkdir -p /etc/apk/keys; "
-				+ "printf '%s" + "\\n" + "' '-----BEGIN PUBLIC KEY-----' "
-				+ "'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE16+nzzY9Lx5wvzZoWs/18vZxsNZD' "
-				+ "'jv+CqECJLUj+fA7J228Iu13DVUO8CK9jQyLHtqkw0f4/X2bKLlLiz281zQ==' "
-				+ "'-----END PUBLIC KEY-----' > /etc/apk/keys/zed-openwrt-apk.pem; }; ";
 			cmd_pb = "apk add --allow-untrusted /tmp/pushbot/pkgs/luci-app-pushbot-*.apk";
 			cmd_i18n = "apk add --allow-untrusted /tmp/pushbot/pkgs/luci-i18n-pushbot-zh-cn-*.apk";
 		} else {
