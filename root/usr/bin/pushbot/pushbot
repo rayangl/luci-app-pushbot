@@ -972,8 +972,11 @@ function pushbot_cron(){
 		( echo `crontab -l 2>/dev/null`|grep -q "pushbot" ) && crontab -l > conf && sed -i "/pushbot/d" conf && crontab conf && rm -f conf >/dev/null 2>&1
 	}
 	function re_cron(){
-		/etc/init.d/cron stop
-		/etc/init.d/cron start
+		# 不再 stop/start cron：该操作在高频执行时存在竞态（stop 后 start 失败
+		# → procd 服务对象被删除 → crond 永久死亡 → 所有定时任务静默失效，
+		# 已实测 6/14 台因此挂掉）。busybox crond 每分钟检测 crontab mtime
+		# 自动重读，改写 crontab 后无需任何重启动作。
+		:
 	}
 	del_cron
 	# 总开关关闭(=0)/空/异常值都不注册定时任务：
@@ -1652,7 +1655,8 @@ function login_send(){
 		[ -z "$login_ip" ] && continue
 		ip_in_whitelist "$login_ip" && continue
 		local web_login_time=`cat ${dir}web_login|grep -w ${login_ip}|awk '{print $1}'|grep -v "^$"|sort -u|head -n1`
-		local web_login_mode=`cat ${dir}web_login|grep -w ${login_ip}|awk '{print $3}'|grep -v "^$"|sort -u|head -n1`
+		# 非表格正文补齐"登录方式"项（Web 类别固定文案；SSH 段显示真实 Pubkey/Password）
+		local content_mode="${str_linefeed}${str_tab}登录方式： ${str_space}${str_space}${str_space}${str_space}Web 登录"
 		if [ ! -z "$web_logged" ] && [ "$web_logged" -eq "1" ]; then
 			# 低频通知检查（模式3）：同一来源Web登录，在时间窗口内只通知一次
 			if ! check_dnd_limit "web_login" "$login_ip" "$dnd_low_range"; then
@@ -1660,7 +1664,8 @@ function login_send(){
 				continue
 			fi
 			if [ "$table_enable" = "1" ]; then
-				local info="$(table_body "时间" "${web_login_time}" "设备 IP" "${login_ip}" "登录方式" "${web_login_mode}")"
+				# Web 登录日志（accepted login）不含认证方式细分，登录类别本身即信息——固定显示"Web 登录"（与 SSH 的 Pubkey/Password 及标题呼应）
+				local info="$(table_body "时间" "${web_login_time}" "设备 IP" "${login_ip}" "登录方式" "Web 登录")"
 				if [ -z "$title" ]; then
 					title="${login_ip} 通过 Web 登录了路由器"
 					content="${content}${str_splitline}${str_title_start}${font_success} 登录信息${font_end}${str_title_end}${info}"
@@ -1684,7 +1689,7 @@ function login_send(){
 				fi
 			fi
 		fi
-		echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}设备 ${login_ip} 通过 web ${web_login_mode} 登录了路由器 " >> ${logfile}
+		echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}设备 ${login_ip} 通过 Web 登录了路由器 " >> ${logfile}
 	done
 	echo "" > ${dir}web_login
 	unset login_ip login_ip_list
@@ -2916,6 +2921,12 @@ while [ "$pushbot_enable" = "1" ]; do
 	deltemp
 	usage update
 	check_nlbw_health
+	# crond 守护：意外死亡时自动拉起（历史 stop/start 竞态或外部因素兜底），
+	# 防止计划任务执行器静默失效导致定时推送不发
+	if [ -z "$(pidof crond 2>/dev/null)" ]; then
+		/etc/init.d/cron start >/dev/null 2>&1
+		[ $? -eq 0 ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【守护】crond 意外死亡，已自动拉起" >> ${logfile}
+	fi
 	pushbot_disturb;disturb=$?
 
 	# 外网IP变化检测
